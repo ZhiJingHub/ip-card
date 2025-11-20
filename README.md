@@ -51,4 +51,78 @@
 
 ```sql
 CREATE TABLE IF NOT EXISTS visitors (id INTEGER PRIMARY KEY, count INTEGER DEFAULT 0);
+
 INSERT OR IGNORE INTO visitors (id, count) VALUES (1, 0);
+```
+### 2.配置环境变量
+
+本项目采用智能检测机制：检测到环境变量即自动开启计数功能。请根据你的平台选择配置方式：
+
+## 🔵 方案 A：Netlify / Vercel 用户
+
+请在部署平台的后台（Settings -> Environment Variables）添加以下 3 个变量。
+
+| 变量名 (Variable) | 必填 (Required) | 示例 (Example) | 说明 / 获取方式 (Description) |
+| :--- | :--- | :--- | :--- |
+| `CF_ACCOUNT_ID` | ✅ 是 | `8f8d85...` | Cloudflare 控制台首页右下角或 URL 中获取 |
+| `CF_D1_DB_ID` | ✅ 是 | `48b6...` | D1 数据库详情页显示的 **Database ID** (UUID) |
+| `CF_API_TOKEN` | ✅ 是 | `X9s7f1...` | `My Profile` -> `API Tokens` (需创建有 **D1 Edit** 权限的 Token) |
+
+## 🟠 方案 B：Cloudflare Workers 用户
+
+Cloudflare 原生支持 D1 绑定，不需要设置上述环境变量。
+
+你只需要修改项目根目录下的 wrangler.toml 文件，将 database_id 替换为你真实的 ID：
+
+```
+[[d1_databases]]
+binding = "DB"
+database_name = "ip-card-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # <--- 在这里填入你的数据库 ID
+```
+
+修改后，运行 wrangler deploy 重新部署即可。
+
+## 📖 API 使用
+
+服务部署后，直接访问以下路径即可获取图片：
+
+```
+GET /ip-card
+```
+
+参数说明：
+| 参数 (Parameter) | 必填 (Required) | 说明 (Description) |
+| :--- | :--- | :--- |
+| `t` | ❌ 否 (Optional) | **时间戳**。建议在 URL 后添加 `?t={时间戳}` 以防止 GitHub/浏览器缓存旧图片。 |
+| `views` | 🔧 仅调试 (Debug) | **强制显示计数**。正常情况下由环境变量自动控制。手动添加 `?views=true` 可强制开启 UI 显示（若无数据库连接则显示 `N/A`）。 |
+
+Markdown 示例：
+
+```
+![IP Card](https://your-domain.com/ip-card)
+```
+
+## 🛠️ 本地开发
+
+如果你想在本地修改代码：
+
+1. **克隆仓库**
+
+```bash
+git clone [https://github.com/ZhiJingHub/ip-card.git](https://github.com/ZhiJingHub/ip-card.git)
+cd ip-card
+```
+2. **安装依赖 (仅 Netlify/Vercel 需要依赖，Cloudflare 原生支持)**
+
+```
+npm install
+```
+3. **本地运行**
+
+| 平台 (Platform) | 启动命令 (Run Command) |
+| :--- | :--- |
+| **Netlify** | `netlify dev` |
+| **Vercel** | `vercel dev` |
+| **Cloudflare** | `npx wrangler dev` |
+   
