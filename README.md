@@ -126,3 +126,6 @@ npm install
 | **Vercel** | `vercel dev` |
 | **Cloudflare** | `npx wrangler dev` |
    
+## 📄 开源协议
+
+本项目遵循 MIT License 协议。欢迎 Fork 和 Star！⭐
