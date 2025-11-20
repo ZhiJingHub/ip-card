@@ -1,0 +1,6 @@
+[build]
+  functions = "netlify/functions"
+[[redirects]]
+  from = "/ip-card"
+  to = "/.netlify/functions/card"
+  status = 200

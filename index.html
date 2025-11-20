@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Info Card</title>
+    <style>
+        :root {
+            --primary: #007aff;
+            --primary-hover: #0062cc;
+            --success: #34c759;
+            --text-main: #1d1d1f;
+            --text-sub: #86868b;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --code-bg: #1e1e1e;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-main: #f5f5f7;
+                --text-sub: #a1a1a6;
+                --card-bg: rgba(28, 28, 30, 0.85);
+                --glass-border: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        body {
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh; display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            padding: 20px; box-sizing: border-box; color: var(--text-main);
+        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .container {
+            width: 100%; max-width: 680px; background: var(--card-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px; border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 40px; animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-size: 32px; font-weight: 700; margin: 0 0 10px 0; }
+        p.subtitle { color: var(--text-sub); margin: 0; }
+
+        .preview-box {
+            background: var(--glass-border); border-radius: 16px; padding: 40px 20px;
+            text-align: center; margin-bottom: 30px; border: 1px dashed rgba(150, 150, 150, 0.3);
+            position: relative; transition: all 0.3s ease;
+        }
+        .preview-img { max-width: 100%; height: auto; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); background: white; }
+
+        .code-section { display: grid; gap: 20px; }
+        .terminal-window { background: var(--code-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .terminal-header { background: rgba(255, 255, 255, 0.1); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .window-controls { display: flex; gap: 6px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        .file-name { color: #aaa; font-size: 12px; font-family: monospace; font-weight: bold; }
+        .copy-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .copy-btn:hover { background: var(--primary); }
+        .terminal-body { padding: 20px; overflow-x: auto; }
+        code { font-family: 'SF Mono', monospace; color: #a5d6ff; font-size: 13px; line-height: 1.5; white-space: nowrap; }
+
+        .refresh-btn { margin-top: 30px; width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .refresh-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        footer { height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Network Identity Card</h1>
+            <p class="subtitle">自适应全平台的动态 IP 签名卡片</p>
+        </header>
+
+        <div class="preview-box">
+            <img id="card-img" class="preview-img" alt="Loading Preview..." />
+        </div>
+
+        <div class="code-section">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="window-controls"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                    <span class="file-name">README.md</span>
+                    <button class="copy-btn" onclick="copyText('md-code', this)">复制</button>
+                </div>
+                <div class="terminal-body"><code id="md-code">...</code></div>
+            </div>
+
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="window-controls"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                    <span class="file-name">index.html</span>
+                    <button class="copy-btn" onclick="copyText('html-code', this)">复制</button>
+                </div>
+                <div class="terminal-body"><code id="html-code">...</code></div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="refresh()">🔄 刷新实时预览</button>
+        <footer></footer>
+    </div>
+
+    <script>
+        const domain = window.location.origin;
+        const url = `${domain}/ip-card`;
+
+        // 初始化代码
+        document.getElementById('md-code').innerText = `![IP Info](${url})`;
+        document.getElementById('html-code').innerText = `<img src="${url}" alt="IP Info">`;
+
+        // 刷新预览
+        function refresh() {
+            const img = document.getElementById('card-img');
+            img.style.opacity = 0.5;
+            img.src = `${url}?t=${Date.now()}`;
+            img.onload = () => img.style.opacity = 1;
+        }
+
+        async function copyText(elementId, btn) {
+            const text = document.getElementById(elementId).innerText;
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = btn.innerText;
+                btn.innerText = "已复制!";
+                btn.style.background = "var(--success)";
+                setTimeout(() => { btn.innerText = originalText; btn.style.background = ""; }, 2000);
+            } catch (err) { alert('复制失败'); }
+        }
+
+        refresh();
+    </script>
+</body>
+</html>
