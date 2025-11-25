@@ -7,6 +7,7 @@ export default async function handler(req, res) {
   const ua = req.headers['user-agent'] || 'Unknown';
   const hasDbConfig = !!process.env.CF_API_TOKEN;
 
+  // 并行执行
   const [geo, viewCount] = await Promise.all([
      getGeoInfo(clientIp),
      hasDbConfig ? incrementD1Remote() : null
