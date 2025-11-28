@@ -36,6 +36,7 @@
 | **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/ZhiJingHub/ip-card) | 🌟 **首选**。零配置，全自动识别。 |
 | **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ZhiJingHub/ip-card) | 🌍 全球 CDN 节点，极其稳定。 |
 | **Cloudflare** | [![Deploy to Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ZhiJingHub/ip-card) | ⚡️ **速度最快** (Edge Network)。 |
+| **Tencent EdgeOne** | [![Deploy to EdgeOne](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https://github.com/ZhiJingHub/ip-card&project-name=ip-card&install-command=npm%20install&build-command=&output-directory=.) | 🇨🇳 **中国大陆优化**。直连访问快。 |
 
 > **部署完成后**：访问你的域名，即可看到自带的**代码生成器面板**，一键生成 Markdown/HTML 代码。
 
