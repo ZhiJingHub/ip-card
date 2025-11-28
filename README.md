@@ -10,7 +10,7 @@
 <br>
 支持 IPv4/IPv6 双栈检测、浏览器版本识别、地理位置显示，以及可选的浏览量统计功能。
 
-[查看演示 (Demo)](https://ip-card-demo.netlify.app/) · [报告问题](https://github.com/ZhiJingHub/ip-card/issues)
+[查看演示 (Demo)](https://github.com/ZhiJingHub/ip-card) · [报告问题](https://github.com/ZhiJingHub/ip-card/issues)
 
 </div>
 
@@ -110,7 +110,7 @@ Markdown 示例：
 1. **克隆仓库**
 
 ```bash
-git clone [https://github.com/ZhiJingHub/ip-card.git](https://github.com/ZhiJingHub/ip-card.git)
+git clone https://github.com/ZhiJingHub/ip-card.git
 cd ip-card
 ```
 2. **安装依赖 (仅 Netlify/Vercel 需要依赖，Cloudflare 原生支持)**
@@ -125,5 +125,4 @@ npm install
 | **Netlify** | `netlify dev` |
 | **Vercel** | `vercel dev` |
 | **Cloudflare** | `npx wrangler dev` |
-
    
