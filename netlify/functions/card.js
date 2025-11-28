@@ -1,10 +1,11 @@
 import { generateSVG } from '../../lib/drawer.js';
 import { incrementD1Remote } from '../../lib/db.js';
-import { getGeoInfo } from '../../lib/geo.js';
+import { getGeoInfo } from '../../lib/geo.js'; // 引入新文件
 
 export const handler = async (event, context) => {
   const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || '127.0.0.1';
   const ua = event.headers['user-agent'] || 'Unknown';
+  // 环境变量检测
   const hasDbConfig = !!process.env.CF_API_TOKEN;
 
   const [geo, viewCount] = await Promise.all([
