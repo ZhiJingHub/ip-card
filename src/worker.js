@@ -1,35 +1,58 @@
 import { generateSVG } from '../lib/drawer.js';
+import { getGeoInfo } from '../lib/geo.js';
 
 export default {
   async fetch(request, env, ctx) {
-    const clientIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+    const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-client-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
     const ua = request.headers.get('user-agent') || 'Unknown';
+    const url = new URL(request.url);
+    const showViews = url.searchParams.get('views') === 'true';
     
-    // 1. 获取地理位置
-    let geo = { city: 'Unknown', country: 'UN', isp: 'Cloudflare' };
-    if (request.cf) {
-        geo.city = request.cf.city || 'Unknown';
-        geo.country = request.cf.country || 'UN';
-        geo.isp = request.cf.asOrganization || 'Cloudflare';
+    let geo = null;
+    
+    // Cloudflare 原生支持
+    if (request.cf && request.cf.city) {
+        geo = {
+            city: request.cf.city,
+            country: request.cf.country,
+            isp: request.cf.asOrganization || 'Cloudflare'
+        };
+    } 
+    
+    // EdgeOne 或其他环境降级支持
+    if (!geo) {
+        geo = await getGeoInfo(clientIp);
     }
 
-    // 2. 智能检测数据库绑定 (env.DB)
+    // 数据库逻辑
     let viewCount = null;
-    if (env.DB) {
-        try {
-            // 只要绑定了 DB，就尝试更新并获取数据
-            const result = await env.DB.prepare("UPDATE visitors SET count = count + 1 WHERE id = 1 RETURNING count").first();
-            viewCount = result ? result.count : 'ERR';
-        } catch (e) {
-            viewCount = 'ERR'; // 绑定了但查询失败
+    if (showViews) {
+        if (env.DB) { // Cloudflare 本地 D1
+            try {
+                const result = await env.DB.prepare("UPDATE visitors SET count = count + 1 WHERE id = 1 RETURNING count").first();
+                viewCount = result ? result.count : 'ERR';
+            } catch (e) { viewCount = 'ERR'; }
+        } else if (env.CF_API_TOKEN) { // 远程 D1 (EdgeOne/Netlify)
+             viewCount = await incrementD1RemoteWorker(env);
+        } else {
+            viewCount = 'N/A';
         }
     }
-    // 如果没有 env.DB，viewCount 保持为 null，drawer.js 会自动隐藏它
 
     const svg = generateSVG(clientIp, geo, ua, viewCount);
-
-    return new Response(svg, {
-      headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Access-Control-Allow-Origin': '*' }
-    });
+    return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Access-Control-Allow-Origin': '*' } });
   }
 };
+
+async function incrementD1RemoteWorker(env) {
+  try {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/d1/database/${env.CF_D1_DB_ID}/query`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.CF_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: "UPDATE visitors SET count = count + 1 WHERE id = 1 RETURNING count", params: [] })
+    });
+    const d = await res.json();
+    if (d.success) return d.result[0].results[0].count;
+  } catch(e) {}
+  return 'ERR';
+}
