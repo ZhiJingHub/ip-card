@@ -1,19 +1,21 @@
-import { generateSVG } from '../lib/drawer.js';
-import { incrementD1Remote } from '../lib/db.js';
-import { getGeoInfo } from '../lib/geo.js'; // 导入新模块
+// netlify/functions/card.js
+import { generateSVG } from '../../lib/drawer.js';
+import { incrementD1Remote } from '../../lib/db.js';
+import { getGeoInfo } from '../../lib/geo.js'; // 必须引入
 
-export default async function handler(req, res) {
-  const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-  const ua = req.headers['user-agent'] || 'Unknown';
+export const handler = async (event, context) => {
+  const clientIp = event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || '127.0.0.1';
+  const ua = event.headers['user-agent'] || 'Unknown';
   const hasDbConfig = !!process.env.CF_API_TOKEN;
 
-  // 并行执行
   const [geo, viewCount] = await Promise.all([
-     getGeoInfo(clientIp),
-     hasDbConfig ? incrementD1Remote() : null
+    getGeoInfo(clientIp), // 这里会进行智能风险分析
+    hasDbConfig ? incrementD1Remote() : null
   ]);
 
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.status(200).send(generateSVG(clientIp, geo, ua, viewCount));
-}
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+    body: generateSVG(clientIp, geo, ua, viewCount)
+  };
+};
