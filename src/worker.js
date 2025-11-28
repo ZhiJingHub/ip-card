@@ -3,38 +3,45 @@ import { getGeoInfo } from '../lib/geo.js';
 
 export default {
   async fetch(request, env, ctx) {
-    const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-client-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+    // 1. 获取真实 IP (自动兼容所有平台)
+    const clientIp = request.headers.get('cf-connecting-ip') // Cloudflare
+                  || request.headers.get('x-client-ip')      // EdgeOne / Aliyun
+                  || request.headers.get('x-forwarded-for')  // Standard Proxy
+                  || '127.0.0.1';
+    
     const ua = request.headers.get('user-agent') || 'Unknown';
     const url = new URL(request.url);
     const showViews = url.searchParams.get('views') === 'true';
     
+    // 2. 智能地理位置 (Cloudflare 优先，其他平台兜底)
     let geo = null;
-    
-    // Cloudflare 原生支持
     if (request.cf && request.cf.city) {
+        // Cloudflare 环境：直接用原生数据，零延迟
         geo = {
             city: request.cf.city,
             country: request.cf.country,
             isp: request.cf.asOrganization || 'Cloudflare'
         };
-    } 
-    
-    // EdgeOne 或其他环境降级支持
-    if (!geo) {
+    } else {
+        // EdgeOne 环境：调用通用 API 查询
         geo = await getGeoInfo(clientIp);
     }
 
-    // 数据库逻辑
+    // 3. 智能数据库 (本地绑定优先，远程 API 兜底)
     let viewCount = null;
     if (showViews) {
-        if (env.DB) { // Cloudflare 本地 D1
+        if (env.DB) { 
+            // Cloudflare D1 本地绑定
             try {
                 const result = await env.DB.prepare("UPDATE visitors SET count = count + 1 WHERE id = 1 RETURNING count").first();
                 viewCount = result ? result.count : 'ERR';
             } catch (e) { viewCount = 'ERR'; }
-        } else if (env.CF_API_TOKEN) { // 远程 D1 (EdgeOne/Netlify)
+        } 
+        else if (env.CF_API_TOKEN) { 
+             // 远程 API (EdgeOne / Netlify 等)
              viewCount = await incrementD1RemoteWorker(env);
-        } else {
+        } 
+        else {
             viewCount = 'N/A';
         }
     }
@@ -44,6 +51,7 @@ export default {
   }
 };
 
+// 辅助函数：Worker 环境下的远程数据库调用
 async function incrementD1RemoteWorker(env) {
   try {
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/d1/database/${env.CF_D1_DB_ID}/query`, {
