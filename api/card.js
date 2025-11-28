@@ -1,6 +1,6 @@
 import { generateSVG } from '../lib/drawer.js';
 import { incrementD1Remote } from '../lib/db.js';
-import { getGeoInfo } from '../lib/geo.js';
+import { getGeoInfo } from '../lib/geo.js'; // 引入新文件
 
 export default async function handler(req, res) {
   const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
